@@ -1,0 +1,4 @@
+*.zip
+*.exe
+node_modules/
+.DS_Store
