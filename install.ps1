@@ -23,11 +23,18 @@ Write-Host ""
 Write-Host "[1/5] Stopping any active instances..." -ForegroundColor Yellow
 Get-Process -Name 'RuntimeBroker', 'electron' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
+$ProgressPreference = 'SilentlyContinue'
+
 # 2. Download Release Archive
 Write-Host "[2/5] Downloading latest release package..." -ForegroundColor Yellow
 Write-Host "      From: $ZipUrl" -ForegroundColor Gray
 try {
-    Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipPath -UseBasicParsing
+    if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+        curl.exe -f -L -# -o $ZipPath $ZipUrl
+        if ($LASTEXITCODE -ne 0) { throw "curl failed with exit code $LASTEXITCODE" }
+    } else {
+        Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipPath -UseBasicParsing
+    }
 } catch {
     Write-Host "[ERROR] Failed to download package. Verify that a release exists on GitHub: https://github.com/$Repo/releases" -ForegroundColor Red
     Write-Host "Error details: $($_.Exception.Message)" -ForegroundColor Red
@@ -40,7 +47,11 @@ if (Test-Path $InstallDir) {
     Remove-Item -Path $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
+if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+    tar.exe -xf $ZipPath -C $InstallDir
+} else {
+    Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
+}
 Remove-Item -Path $ZipPath -Force -ErrorAction SilentlyContinue
 
 # 4. Create Desktop Shortcut
