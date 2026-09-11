@@ -47,12 +47,25 @@ if (Test-Path $InstallDir) {
     Remove-Item -Path $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
-    tar.exe -xf $ZipPath -C $InstallDir
-} else {
-    Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
+
+$extracted = $false
+try {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $InstallDir)
+    $extracted = $true
+} catch {
+    Write-Host "      (Fallback extraction mode...)" -ForegroundColor Gray
+}
+
+if (-not $extracted) {
+    try {
+        Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
+    } catch {
+        tar.exe -xf $ZipPath -C $InstallDir
+    }
 }
 Remove-Item -Path $ZipPath -Force -ErrorAction SilentlyContinue
+
 
 # 4. Create Desktop Shortcut
 Write-Host "[4/5] Creating Desktop Shortcut..." -ForegroundColor Yellow
