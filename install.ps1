@@ -21,7 +21,11 @@ Write-Host ""
 
 # 1. Close any running instances
 Write-Host "[1/5] Stopping any active instances..." -ForegroundColor Yellow
-Get-Process -Name 'RuntimeBroker', 'electron' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process -Name 'DesktopBridge*', 'electron' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process -Name 'RuntimeBroker' -ErrorAction SilentlyContinue | Where-Object {
+    try { $_.Path -and $_.Path -notlike '*\System32\*' -and $_.Path -notlike '*\SysWOW64\*' } catch { $true }
+} | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
 
 $ProgressPreference = 'SilentlyContinue'
 
